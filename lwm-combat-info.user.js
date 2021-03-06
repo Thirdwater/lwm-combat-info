@@ -74,6 +74,14 @@
                     return "ATB position: " + atb_position;
                 },
             },
+            hero_title: {
+                en: function(current, max) {
+                    return "Army hit points: " + current + "/" + max;
+                },
+                ru: function(current, max) {
+                    return "Army hit points: " + current + "/" + max;
+                },
+            },
         };
         var lwm_interface = {
             domain: {
@@ -131,6 +139,13 @@
                 }
             },
             hero_initiative_element: document.getElementById('hero_info_init').parentNode,
+            get_hero_title_element: function(page) {
+                if (page === 1) {
+                    return document.getElementById('hero_info_head').children[1];
+                } else if (page === 2) {
+                    return document.getElementById('effects_info_head').children[1];
+                }
+            },
             faction_icon_link: {
                 knight: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_knight.png?v=4',
                 necromancer: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_necromancer.png?v=4',
@@ -222,6 +237,10 @@
                 class: 'hero_initiative_tooltip',
                 description_id: 'hero_initiative_desc',
             },
+            hero_title: {
+                class: 'hero_title_tooltip',
+                description_id: 'hero_title_desc',
+            },
         };
 
         /*
@@ -233,6 +252,16 @@
         }
         function is_hero(stack) {
             return stack.hero !== undefined;
+        }
+        function get_army_stacks(owner_index) {
+            var army_stacks = [];
+            for (var index in lwm_interface.stack_object) {
+                var stack = lwm_interface.stack_object[index];
+                if (!is_hero(stack) && stack.owner === owner_index) {
+                    army_stacks.push(stack);
+                }
+            }
+            return army_stacks;
         }
 
         /*
@@ -306,6 +335,12 @@
             hero_level_element.classList.add(tooltip.hero_level.class);
             addEasyTooltip(tooltip.hero_level);
         }
+        function add_hero_title_tooltip(page) {
+            var hero_title_element = lwm_interface.get_hero_title_element(page);
+            hero_title_element.classList.add(lwm_interface.tooltip_class);
+            hero_title_element.classList.add(tooltip.hero_title.class);
+            addEasyTooltip(tooltip.hero_title);
+        }
         function hero_factions_template(faction_levels) {
             var table = document.createElement('table');
             table.style = 'margin: 5px;';
@@ -366,7 +401,7 @@
                 extra_1: factions_array[11],
                 extra_2: factions_array[12],
             };
-            console.log(factions);
+
             var description = document.getElementById(tooltip.hero_factions.description_id);
             description.innerHTML = text.hero_factions.en(factions);
         }
@@ -382,6 +417,48 @@
             var atb_position = stack.nowinit;
             var description = document.getElementById(tooltip.hero_initiative.description_id);
             description.innerHTML = text.hero_initiative.en(atb_position);
+        }
+        function update_hero_title(stack) {
+            var owner_index = stack.owner;
+            var army_stacks = get_army_stacks(owner_index);
+            var army_max_hp = 0;
+            var army_current_hp = 0;
+
+            //console.log("");
+            for (var stack_index in army_stacks) {
+                var army_stack = army_stacks[stack_index];
+
+                // consider first 7 as a filter?
+                if (army_stack.summoned2) {
+                    // summoned2 - demon gate, tde summon
+                    continue;
+                }
+
+                var max_stack_size = army_stack.maxnumber;
+                var current_stack_size = army_stack.nownumber;
+                var original_max_hp = army_stack.realhealth;
+                var reduced_max_hp = army_stack.maxhealth;
+                var current_hp = army_stack.nowhealth;
+
+                if (original_max_hp !== reduced_max_hp) {
+                    army_current_hp = "?";
+                    army_max_hp = "?";
+                    break;
+                }
+
+                var stack_original_max_hp = max_stack_size * original_max_hp;
+                var stack_current_hp_base = Math.max(0, current_stack_size - 1) * reduced_max_hp;
+                var stack_current_hp_head = current_hp;
+                var stack_current_hp = stack_current_hp_base + stack_current_hp_head;
+
+                //console.log(army_stack.nametxt + ": " + stack_current_hp + "/" + stack_original_max_hp);
+
+                army_max_hp += stack_original_max_hp;
+                army_current_hp += stack_current_hp;
+            }
+
+            var description = document.getElementById(tooltip.hero_title.description_id);
+            description.innerHTML = text.hero_title.en(army_current_hp, army_max_hp);
         }
         // Bug during settlement:
         // Splitted stacks will still have their original max stack size before the split.
@@ -404,6 +481,11 @@
             var stack_current_hp_head = current_hp;
             var stack_current_hp = stack_current_hp_base + stack_current_hp_head;
 
+            if (original_max_hp !== reduced_max_hp) {
+                stack_current_hp = "?";
+                stack_original_max_hp = "?";
+            }
+
             var description = document.getElementById(tooltip.stack_hp.description_id);
             description.innerHTML = text.stack_hp.en(stack_current_hp, stack_original_max_hp);
         }
@@ -418,15 +500,18 @@
          */
         function on_hero_info(stack) {
             update_hero_factions(stack);
+            update_hero_title(stack);
             update_hero_level(stack);
         }
         function on_hero_info_page1(stack) {
             add_hero_factions_tooltip(1);
+            add_hero_title_tooltip(1);
             add_hero_level_tooltip(1);
             update_hero_initiative(stack);
         }
         function on_hero_info_page2(stack) {
             add_hero_factions_tooltip(2);
+            add_hero_title_tooltip(2);
             add_hero_level_tooltip(2);
         }
         function on_unit_info(stack) {
