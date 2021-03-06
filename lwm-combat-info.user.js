@@ -49,11 +49,13 @@
                 },
             },
             hero_factions: {
-                en: function(factions) {
-                    return "lorem ipsum";
+                en: function(faction_levels) {
+                    var table = hero_factions_template(faction_levels);
+                    return table.outerHTML;
                 },
-                ru: function(factions) {
-                    return "lorem ipsum";
+                ru: function(faction_levels) {
+                    var table = hero_factions_template(faction_levels);
+                    return table.outerHTML;
                 },
             },
             hero_level: {
@@ -129,6 +131,18 @@
                 }
             },
             hero_initiative_element: document.getElementById('hero_info_init').parentNode,
+            faction_icon_link: {
+                knight: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_knight.png?v=4',
+                necromancer: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_necromancer.png?v=4',
+                wizard: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_mage.png?v=4',
+                elf: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_elveon.png?v=4',
+                barbarian: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_barbarian.png?v=4',
+                dark_elf: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_darkelves.png?v=4',
+                demon: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_demon.png?v=4',
+                dwarf: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_dwarf.png?v=4',
+                tribal: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_steppebarbarian.png?v=4',
+                pharaoh: 'https://dcdn.lordswm.com/i/combat/factions_icons/faction_egypt.png?v=4',
+            },
             creature_infocard_page: 'army_info.php?name=',
             // Potential bug; need to find all creatures with different combat/infocard names.
             creature_infocard_name: {
@@ -292,17 +306,67 @@
             hero_level_element.classList.add(tooltip.hero_level.class);
             addEasyTooltip(tooltip.hero_level);
         }
+        function hero_factions_template(faction_levels) {
+            var table = document.createElement('table');
+            table.style = 'margin: 5px;';
+
+            for (var faction in faction_levels) {
+                var faction_level = faction_levels[faction];
+
+                var row = document.createElement('tr');
+
+                var icon_cell = document.createElement('td');
+                icon_cell.style = 'background: radial-gradient(rgba(180, 180, 180, 0.6), rgba(36, 38, 39, 0)); display: inline-block; margin-right: 30px; padding-top: 4px; padding-left: 4px; padding-right: 4px;';
+
+                var level_cell = document.createElement('td');
+                level_cell.style = 'font-size: 14px;';
+                level_cell.align = 'right';
+                level_cell.innerHTML = faction_level;
+
+                if (faction in lwm_interface.faction_icon_link) {
+                    var icon_element = document.createElement('img');
+                    icon_element.src = lwm_interface.faction_icon_link[faction];
+                    icon_element.style.width = '16px';
+                    icon_element.style.height = '16px';
+
+                    icon_cell.append(icon_element);
+
+                    row.append(icon_cell);
+                    row.append(level_cell);
+                    table.append(row);
+                } else if (faction_level > 0) {
+                    icon_cell.innerHTML = "?";
+                    icon_cell.align = 'center';
+                    icon_cell.style.width = '16px';
+                    row.append(icon_cell);
+                    row.append(level_cell);
+                    table.append(row);
+                }
+            }
+            return table;
+        }
 
         /*
          * Data
          */
         function update_hero_factions(stack) {
-            var factions = "foo";
-            // get window.umelka (indexed by pl_id)
-            // get player id to find matching pl_id to lookup the umelka
-            // window.params
-            // window.pl_ids
-            // window.player..
+            var owner_index = stack.owner;
+            var factions_array = window.umelka[owner_index];
+            var factions = {
+                knight: factions_array[1],
+                necromancer: factions_array[2],
+                wizard: factions_array[3],
+                elf: factions_array[4],
+                barbarian: factions_array[5],
+                dark_elf: factions_array[6],
+                demon: factions_array[7],
+                dwarf: factions_array[8],
+                tribal: factions_array[9],
+                pharaoh: factions_array[10],
+                extra_1: factions_array[11],
+                extra_2: factions_array[12],
+            };
+            console.log(factions);
             var description = document.getElementById(tooltip.hero_factions.description_id);
             description.innerHTML = text.hero_factions.en(factions);
         }
